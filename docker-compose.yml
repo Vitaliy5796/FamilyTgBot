@@ -1,0 +1,40 @@
+# docker-compose.yml
+version: '3.9'
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: bot-postgres
+    restart: always
+    environment:
+      POSTGRES_DB: family
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"                 # опционально, если хочешь подключаться извне
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U botuser -d botdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  bot:
+    build: .                        # собирает из Dockerfile в этой же папке
+    container_name: telegram-bot
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy   # ждёт, пока БД поднимется
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/family
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=postgres
+      - TELEGRAMBOT_TOKEN=8547826500:AAF6-6iL4PG0la-KrQqqMMNzw8NZrBB_m8k
+      - TELEGRAMBOT_NAME=fam1ly_tg_bot
+    ports:
+      - "8080:8080"
+
+volumes:
+  postgres_data:
